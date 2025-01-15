@@ -112,10 +112,6 @@
             box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
         }
     </style>
-<<<<<<< HEAD
-</head>
-<body>
-=======
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/loyalty.css">
 </head>
@@ -126,7 +122,6 @@
             window.location.href = 'login.html';
         }
     </script>
->>>>>>> 1a3b069 (Initial commit with complete project files)
     <!-- Sidebar -->
     <div class="sidebar">
         <h4 class="mb-4">VaultBooks</h4>
@@ -155,19 +150,11 @@
             <hr>
             <div class="dropdown">
                 <button class="btn btn-light dropdown-toggle w-100" type="button" id="userMenu" data-bs-toggle="dropdown">
-<<<<<<< HEAD
-                    <i class="fas fa-user"></i> John Doe
-                </button>
-                <ul class="dropdown-menu w-100">
-                    <li><a class="dropdown-item" href="#" onclick="showProfile()">Profile</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="showSettings()">Settings</a></li>
-=======
                     <i class="fas fa-user"></i> <span id="userFullName">User</span>
                 </button>
                 <ul class="dropdown-menu w-100">
                     <li><a class="dropdown-item" href="#" onclick="showProfile()">Profile</a></li>
                     <li><a class="dropdown-item" href="#" onclick="showSettings()">Business Settings</a></li>
->>>>>>> 1a3b069 (Initial commit with complete project files)
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
                 </ul>
@@ -197,10 +184,7 @@
                                 <div>
                                     <h6 class="card-subtitle mb-2">Revenue</h6>
                                     <h3 class="card-title mb-0" id="totalRevenue">$0</h3>
-<<<<<<< HEAD
-=======
                                     <small class="text-white-50" id="revenueGrowth">+0% from last period</small>
->>>>>>> 1a3b069 (Initial commit with complete project files)
                                 </div>
                                 <i class="fas fa-dollar-sign"></i>
                             </div>
@@ -214,10 +198,7 @@
                                 <div>
                                     <h6 class="card-subtitle mb-2">Orders</h6>
                                     <h3 class="card-title mb-0" id="totalOrders">0</h3>
-<<<<<<< HEAD
-=======
                                     <small class="text-white-50" id="ordersGrowth">+0% from last period</small>
->>>>>>> 1a3b069 (Initial commit with complete project files)
                                 </div>
                                 <i class="fas fa-shopping-cart"></i>
                             </div>
@@ -231,10 +212,7 @@
                                 <div>
                                     <h6 class="card-subtitle mb-2">Customers</h6>
                                     <h3 class="card-title mb-0" id="totalCustomers">0</h3>
-<<<<<<< HEAD
-=======
                                     <small class="text-white-50" id="customersGrowth">+0 this period</small>
->>>>>>> 1a3b069 (Initial commit with complete project files)
                                 </div>
                                 <i class="fas fa-users"></i>
                             </div>
@@ -248,10 +226,7 @@
                                 <div>
                                     <h6 class="card-subtitle mb-2">Profit</h6>
                                     <h3 class="card-title mb-0" id="totalProfit">$0</h3>
-<<<<<<< HEAD
-=======
                                     <small class="text-white-50" id="profitGrowth">+0% from last period</small>
->>>>>>> 1a3b069 (Initial commit with complete project files)
                                 </div>
                                 <i class="fas fa-chart-line"></i>
                             </div>
@@ -260,8 +235,6 @@
                 </div>
             </div>
 
-<<<<<<< HEAD
-=======
             <!-- Additional Analytics -->
             <div class="row mb-4">
                 <!-- Top Products -->
@@ -311,7 +284,6 @@
                 </div>
             </div>
 
->>>>>>> 1a3b069 (Initial commit with complete project files)
             <!-- Charts -->
             <div class="row">
                 <div class="col-md-8">
@@ -336,15 +308,6 @@
                 </div>
             </div>
 
-<<<<<<< HEAD
-            <div class="row mt-4">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Orders Overview</h5>
-                            <div class="chart-container">
-                                <canvas id="ordersChart"></canvas>
-=======
             <!-- Sales Analytics -->
             <div class="row mt-4">
                 <div class="col-md-6">
@@ -363,7 +326,6 @@
                             <h5 class="card-title">Monthly Growth</h5>
                             <div class="chart-container">
                                 <canvas id="growthChart"></canvas>
->>>>>>> 1a3b069 (Initial commit with complete project files)
                             </div>
                         </div>
                     </div>
@@ -371,91 +333,6 @@
             </div>
         </div>
 
-<<<<<<< HEAD
-        <!-- Other Sections -->
-        <div id="finance" class="section" style="display: none;">
-            <h2>Finance</h2>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Financial Overview</h5>
-                    <p>View your financial health, track income and expenses, and analyze financial trends.</p>
-                    <button class="btn btn-primary">Generate Report</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="inventory" class="section" style="display: none;">
-            <h2>Inventory</h2>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Inventory Management</h5>
-                    <p>Manage your stock levels, add new items, and track inventory movements.</p>
-                    <button class="btn btn-primary" onclick="addNewItem()">Add New Item</button>
-                </div>
-            </div>
-            <table class="table table-striped mt-3">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="inventoryTable">
-                    <!-- Inventory items will be populated here -->
-                </tbody>
-            </table>
-        </div>
-
-        <div id="customers" class="section" style="display: none;">
-            <h2>Customers</h2>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Customer Management</h5>
-                    <p>Manage customer profiles, view transaction history, and track loyalty points.</p>
-                    <button class="btn btn-primary" onclick="addNewCustomer()">Add New Customer</button>
-                </div>
-            </div>
-            <table class="table table-striped mt-3">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Loyalty Points</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="customersTable">
-                    <!-- Customer data will be populated here -->
-                </tbody>
-            </table>
-        </div>
-
-        <div id="billing" class="section" style="display: none;">
-            <h2>Billing</h2>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Billing and Invoices</h5>
-                    <p>Manage invoices, track payments, and generate billing reports.</p>
-                    <button class="btn btn-primary" onclick="createNewInvoice()">Create Invoice</button>
-                </div>
-            </div>
-            <table class="table table-striped mt-3">
-                <thead>
-                    <tr>
-                        <th>Invoice #</th>
-                        <th>Customer</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="billingTable">
-                    <!-- Billing data will be populated here -->
-                </tbody>
-            </table>
-=======
         <!-- Finance Section -->
         <div id="finance" class="section" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -772,7 +649,6 @@
                     </div>
                 </div>
             </div>
->>>>>>> 1a3b069 (Initial commit with complete project files)
         </div>
 
         <div id="reports" class="section" style="display: none;">
@@ -821,15 +697,6 @@
         </div>
     </div>
 
-<<<<<<< HEAD
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/charts.js"></script>
-    <script src="js/script.js"></script>
-    <script src="js/billing.js"></script>
-=======
     <!-- Add Item Modal -->
     <div class="modal fade" id="addItemModal" tabindex="-1">
         <div class="modal-dialog">
@@ -1180,17 +1047,16 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/data.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/script.js"></script>
-    <script src="js/charts.js"></script>
-    <script src="js/billing.js"></script>
-    <script src="js/inventory.js"></script>
-    <script src="js/customers.js"></script>
-    <script src="js/dashboard.js"></script>
-    <script src="js/finance.js"></script>
->>>>>>> 1a3b069 (Initial commit with complete project files)
+    <script src="/js/config.js"></script>
+    <script src="/js/data.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/charts.js"></script>
+    <script src="/js/billing.js"></script>
+    <script src="/js/inventory.js"></script>
+    <script src="/js/customers.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/finance.js"></script>
 </body>
 </html>
