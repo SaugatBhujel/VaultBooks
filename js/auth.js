@@ -1,7 +1,7 @@
 // Check if user is logged in
-function checkAuth() {
+async function checkAuth() {
     console.log('Checking auth...');
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
     console.log('Is logged in:', isLoggedIn);
     
     // Get current page
@@ -27,7 +27,7 @@ function checkAuth() {
 }
 
 // Register function
-function register(event) {
+async function register(event) {
     event.preventDefault();
     console.log('Starting registration...');
     try {
@@ -47,29 +47,11 @@ function register(event) {
             return;
         }
 
-        // Get existing users or initialize empty array
-        let users = [];
-        try {
-            const existingUsers = localStorage.getItem('users');
-            console.log('Existing users:', existingUsers);
-            users = existingUsers ? JSON.parse(existingUsers) : [];
-        } catch (e) {
-            console.error('Error parsing users:', e);
-            users = [];
-        }
-
-        // Check if username already exists
-        if (users.some(user => user.username === username)) {
+        // Check if username exists
+        const existingUser = await db.getUser(username);
+        if (existingUser) {
             console.log('Username exists');
             document.getElementById('registerError').textContent = 'Username already exists!';
-            document.getElementById('registerError').style.display = 'block';
-            return;
-        }
-
-        // Check if email already exists
-        if (users.some(user => user.email === email)) {
-            console.log('Email exists');
-            document.getElementById('registerError').textContent = 'Email already registered!';
             document.getElementById('registerError').style.display = 'block';
             return;
         }
@@ -79,19 +61,17 @@ function register(event) {
             fullName,
             username,
             email,
-            password
+            password,
+            createdAt: new Date().toISOString()
         };
-        users.push(newUser);
+
+        await db.addUser(newUser);
         console.log('New user added:', newUser);
 
-        // Save updated users array
-        localStorage.setItem('users', JSON.stringify(users));
-        console.log('Users saved to localStorage');
-
-        // Auto login after registration
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('username', username);
-        localStorage.setItem('fullName', fullName);
+        // Set session
+        sessionStorage.setItem('isLoggedIn', 'true');
+        sessionStorage.setItem('username', username);
+        sessionStorage.setItem('fullName', fullName);
         console.log('Login data saved');
 
         // Redirect to dashboard
@@ -105,7 +85,7 @@ function register(event) {
 }
 
 // Login function
-function login(event) {
+async function login(event) {
     event.preventDefault();
     console.log('Starting login...');
     try {
@@ -113,25 +93,14 @@ function login(event) {
         const password = document.getElementById('password').value;
         console.log('Login attempt for username:', username);
         
-        // Get users from localStorage
-        let users = [];
-        try {
-            const existingUsers = localStorage.getItem('users');
-            console.log('Existing users:', existingUsers);
-            users = existingUsers ? JSON.parse(existingUsers) : [];
-        } catch (e) {
-            console.error('Error parsing users:', e);
-            users = [];
-        }
-        
-        // Find user
-        const user = users.find(u => u.username === username && u.password === password);
+        // Get user from database
+        const user = await db.getUser(username);
         console.log('User found:', !!user);
 
-        if (user) {
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('username', username);
-            localStorage.setItem('fullName', user.fullName);
+        if (user && user.password === password) {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('username', username);
+            sessionStorage.setItem('fullName', user.fullName);
             console.log('Login successful, data saved');
             window.location.href = 'index.html';
         } else {
@@ -150,9 +119,9 @@ function login(event) {
 function logout() {
     console.log('Logging out...');
     try {
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('username');
-        localStorage.removeItem('fullName');
+        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('username');
+        sessionStorage.removeItem('fullName');
         console.log('Login data cleared');
         window.location.href = 'login.html';
     } catch (error) {
@@ -164,7 +133,7 @@ function logout() {
 function updateUserUI() {
     console.log('Updating UI...');
     try {
-        const fullName = localStorage.getItem('fullName') || 'User';
+        const fullName = sessionStorage.getItem('fullName') || 'User';
         console.log('Current user:', fullName);
         const userMenu = document.getElementById('userMenu');
         if (userMenu) {
