@@ -6,15 +6,11 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
-      "source": "/(.*).(js|css|json)",
+      "source": "/(.*)\\.(?:js|css|json)",
       "headers": [
         {
           "key": "Cache-Control",
