@@ -10,7 +10,7 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/(.*)\\.(?:js|css|json)",
+      "source": "/:path*.(js|css|json)",
       "headers": [
         {
           "key": "Cache-Control",
