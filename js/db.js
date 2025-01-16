@@ -15,63 +15,112 @@ const STORES = {
 // Initialize database
 function initDB() {
     return new Promise((resolve, reject) => {
+        console.log('Opening database:', DB_NAME);
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
+        request.onerror = (event) => {
+            console.error('Database error:', event.target.error);
+            reject(new Error('Failed to open database. Please make sure your browser supports IndexedDB and you have not disabled it.'));
+        };
+
+        request.onsuccess = (event) => {
+            console.log('Database opened successfully');
+            const db = event.target.result;
+            
+            db.onerror = (event) => {
+                console.error('Database error:', event.target.error);
+            };
+            
+            resolve(db);
+        };
 
         request.onupgradeneeded = (event) => {
+            console.log('Upgrading database...');
             const db = event.target.result;
 
             // Create object stores if they don't exist
-            if (!db.objectStoreNames.contains(STORES.users)) {
-                db.createObjectStore(STORES.users, { keyPath: 'username' });
-            }
-            if (!db.objectStoreNames.contains(STORES.inventory)) {
-                db.createObjectStore(STORES.inventory, { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains(STORES.customers)) {
-                db.createObjectStore(STORES.customers, { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains(STORES.bills)) {
-                db.createObjectStore(STORES.bills, { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains(STORES.finances)) {
-                db.createObjectStore(STORES.finances, { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains(STORES.settings)) {
-                db.createObjectStore(STORES.settings, { keyPath: 'id' });
-            }
+            Object.entries(STORES).forEach(([name, storeName]) => {
+                if (!db.objectStoreNames.contains(storeName)) {
+                    console.log('Creating store:', storeName);
+                    db.createObjectStore(storeName, { keyPath: name === 'users' ? 'username' : 'id' });
+                }
+            });
+        };
+
+        request.onblocked = () => {
+            console.error('Database upgrade blocked. Please close other tabs with this site open.');
+            reject(new Error('Database upgrade blocked. Please close other tabs with this site open.'));
         };
     });
 }
 
 // Generic database operations
 async function dbOperation(storeName, mode, operation) {
-    const db = await initDB();
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, mode);
-        const store = transaction.objectStore(storeName);
+    console.log(`Starting ${mode} operation on ${storeName}`);
+    let db;
+    try {
+        db = await initDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, mode);
+            const store = transaction.objectStore(storeName);
 
-        const request = operation(store);
+            transaction.onerror = (event) => {
+                console.error(`Transaction error on ${storeName}:`, event.target.error);
+                reject(new Error(`Failed to perform operation on ${storeName}`));
+            };
 
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
+            transaction.oncomplete = () => {
+                console.log(`Transaction completed on ${storeName}`);
+            };
+
+            const request = operation(store);
+
+            request.onsuccess = () => {
+                console.log(`Operation successful on ${storeName}`);
+                resolve(request.result);
+            };
+
+            request.onerror = (event) => {
+                console.error(`Operation error on ${storeName}:`, event.target.error);
+                reject(request.error);
+            };
+        });
+    } catch (error) {
+        console.error(`Database operation failed on ${storeName}:`, error);
+        throw error;
+    } finally {
+        if (db) {
+            db.close();
+            console.log('Database connection closed');
+        }
+    }
 }
 
 // Database operations
 const db = {
     // User operations
     async addUser(userData) {
+        console.log('Adding user:', userData.username);
+        if (!userData || !userData.username) {
+            throw new Error('Invalid user data');
+        }
         return dbOperation(STORES.users, 'readwrite', (store) => store.add(userData));
     },
 
     async getUser(username) {
+        console.log('Getting user:', username);
+        if (!username) {
+            throw new Error('Username is required');
+        }
         return dbOperation(STORES.users, 'readonly', (store) => store.get(username));
     },
 
     async updateUser(userData) {
+        console.log('Updating user:', userData.username);
+        if (!userData || !userData.username) {
+            throw new Error('Invalid user data');
+        }
         return dbOperation(STORES.users, 'readwrite', (store) => store.put(userData));
     },
 
@@ -172,5 +221,22 @@ const db = {
     }
 };
 
-// Export the database interface
-window.db = db; 
+// Test database connection
+async function testDB() {
+    try {
+        console.log('Testing database connection...');
+        await initDB();
+        console.log('Database connection test successful');
+        return true;
+    } catch (error) {
+        console.error('Database connection test failed:', error);
+        return false;
+    }
+}
+
+// Export the database interface and test function
+window.db = db;
+window.testDB = testDB;
+
+// Initialize database when the script loads
+testDB().catch(console.error); 

@@ -31,56 +31,88 @@ async function register(event) {
     event.preventDefault();
     console.log('Starting registration...');
     try {
+        // Get form values
         const fullName = document.getElementById('fullName').value;
         const username = document.getElementById('username').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
 
-        console.log('Registration data collected');
+        console.log('Form data:', { fullName, username, email });
+
+        // Show loading state
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+        }
 
         // Validate passwords match
         if (password !== confirmPassword) {
-            console.log('Passwords do not match');
-            document.getElementById('registerError').textContent = "Passwords don't match!";
-            document.getElementById('registerError').style.display = 'block';
-            return;
+            throw new Error("Passwords don't match!");
         }
 
-        // Check if username exists
-        const existingUser = await db.getUser(username);
-        if (existingUser) {
-            console.log('Username exists');
-            document.getElementById('registerError').textContent = 'Username already exists!';
-            document.getElementById('registerError').style.display = 'block';
-            return;
+        // Validate required fields
+        if (!fullName || !username || !email || !password) {
+            throw new Error('All fields are required');
         }
 
-        // Add new user
-        const newUser = {
-            fullName,
-            username,
-            email,
-            password,
-            createdAt: new Date().toISOString()
-        };
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            throw new Error('Invalid email format');
+        }
 
-        await db.addUser(newUser);
-        console.log('New user added:', newUser);
+        console.log('Validation passed, checking for existing user...');
 
-        // Set session
-        sessionStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('username', username);
-        sessionStorage.setItem('fullName', fullName);
-        console.log('Login data saved');
+        try {
+            // Check if username exists
+            const existingUser = await db.getUser(username);
+            console.log('Existing user check result:', existingUser);
 
-        // Redirect to dashboard
-        console.log('Redirecting to index.html');
-        window.location.href = 'index.html';
+            if (existingUser) {
+                throw new Error('Username already exists!');
+            }
+
+            // Create new user object
+            const newUser = {
+                fullName,
+                username,
+                email,
+                password,
+                createdAt: new Date().toISOString()
+            };
+
+            console.log('Adding new user to database...');
+            await db.addUser(newUser);
+            console.log('User added successfully:', newUser);
+
+            // Set session
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('username', username);
+            sessionStorage.setItem('fullName', fullName);
+            console.log('Session data saved');
+
+            // Redirect to dashboard
+            window.location.href = 'index.html';
+        } catch (dbError) {
+            console.error('Database operation failed:', dbError);
+            throw new Error(dbError.message || 'Registration failed. Please try again.');
+        }
     } catch (error) {
         console.error('Registration error:', error);
-        document.getElementById('registerError').textContent = 'An error occurred during registration.';
-        document.getElementById('registerError').style.display = 'block';
+        const errorElement = document.getElementById('registerError');
+        if (errorElement) {
+            errorElement.textContent = error.message || 'An error occurred during registration.';
+            errorElement.style.display = 'block';
+        }
+    } finally {
+        // Reset button state
+        const submitButton = document.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Register';
+        }
     }
 }
 
