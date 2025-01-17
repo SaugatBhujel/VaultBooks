@@ -29,3 +29,4 @@ out/
 # Cache
 .cache/
 .temp/
+.vercel

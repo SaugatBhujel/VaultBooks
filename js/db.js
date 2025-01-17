@@ -1,242 +1,326 @@
 // Database configuration
-const DB_NAME = 'VaultBooksDB';
-const DB_VERSION = 1;
+const DB_NAME = 'vaultbooks';
+const DB_VERSION = 2;
 
-// Database schema
-const STORES = {
-    users: 'users',
-    inventory: 'inventory',
-    customers: 'customers',
-    bills: 'bills',
-    finances: 'finances',
-    settings: 'settings'
-};
+// Global database instance
+let db = null;
+let isInitializing = false;
+let initPromise = null;
+
+// Store active sessions
+const activeSessions = new Map();
+
+// Data storage functions
+function getData() {
+    try {
+        const data = localStorage.getItem('vaultbooks_data');
+        return data ? JSON.parse(data) : { users: [], finances: [] };
+    } catch (error) {
+        console.error('Error reading data:', error);
+        return { users: [], finances: [] };
+    }
+}
+
+function saveData(data) {
+    try {
+        localStorage.setItem('vaultbooks_data', JSON.stringify(data));
+    } catch (error) {
+        console.error('Error saving data:', error);
+    }
+}
 
 // Initialize database
-function initDB() {
-    return new Promise((resolve, reject) => {
-        console.log('Opening database:', DB_NAME);
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
+async function initDB() {
+    // If already initialized, return the instance
+    if (db) {
+        console.log('Database already initialized');
+        return Promise.resolve(db);
+    }
 
-        request.onerror = (event) => {
-            console.error('Database error:', event.target.error);
-            reject(new Error('Failed to open database. Please make sure your browser supports IndexedDB and you have not disabled it.'));
-        };
+    // If initialization is in progress, return the existing promise
+    if (initPromise) {
+        console.log('Database initialization already in progress');
+        return initPromise;
+    }
 
-        request.onsuccess = (event) => {
-            console.log('Database opened successfully');
-            const db = event.target.result;
+    console.log('Starting database initialization...');
+    isInitializing = true;
+
+    initPromise = new Promise((resolve, reject) => {
+        try {
+            // First try to migrate data from localStorage if it exists
+            const oldData = getData();
             
-            db.onerror = (event) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onerror = (event) => {
                 console.error('Database error:', event.target.error);
+                isInitializing = false;
+                initPromise = null;
+                reject(event.target.error);
             };
-            
-            resolve(db);
-        };
 
-        request.onupgradeneeded = (event) => {
-            console.log('Upgrading database...');
-            const db = event.target.result;
+            request.onsuccess = (event) => {
+                console.log('Database opened successfully');
+                db = event.target.result;
+                isInitializing = false;
 
-            // Create object stores if they don't exist
-            Object.entries(STORES).forEach(([name, storeName]) => {
-                if (!db.objectStoreNames.contains(storeName)) {
-                    console.log('Creating store:', storeName);
-                    db.createObjectStore(storeName, { keyPath: name === 'users' ? 'username' : 'id' });
+                // Migrate old data if needed
+                if (oldData && oldData.finances && oldData.finances.length > 0) {
+                    const transaction = db.transaction(['finances'], 'readwrite');
+                    const store = transaction.objectStore('finances');
+                    oldData.finances.forEach(entry => {
+                        store.add(entry);
+                    });
                 }
-            });
-        };
 
-        request.onblocked = () => {
-            console.error('Database upgrade blocked. Please close other tabs with this site open.');
-            reject(new Error('Database upgrade blocked. Please close other tabs with this site open.'));
+                resolve(db);
+            };
+
+            request.onupgradeneeded = (event) => {
+                console.log('Creating/upgrading database...');
+                const database = event.target.result;
+                
+                // Create users store if it doesn't exist
+                if (!database.objectStoreNames.contains('users')) {
+                    console.log('Creating users store');
+                    database.createObjectStore('users', { keyPath: 'username' });
+                }
+
+                // Create finances store if it doesn't exist
+                if (!database.objectStoreNames.contains('finances')) {
+                    console.log('Creating finances store');
+                    const financeStore = database.createObjectStore('finances', { keyPath: 'id' });
+                    financeStore.createIndex('date', 'date');
+                    financeStore.createIndex('type', 'type');
+                }
+            };
+        } catch (error) {
+            console.error('Failed to initialize database:', error);
+            isInitializing = false;
+            initPromise = null;
+            reject(error);
+        }
+    });
+
+    return initPromise;
+}
+
+// Add user to database
+async function addUser(user) {
+    if (!db) {
+        throw new Error('Database not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['users'], 'readwrite');
+        const store = transaction.objectStore('users');
+        const request = store.add(user);
+        
+        request.onsuccess = () => {
+            console.log('User added successfully:', user.username);
+            resolve();
         };
+        request.onerror = () => reject(request.error);
     });
 }
 
-// Generic database operations
-async function dbOperation(storeName, mode, operation) {
-    console.log(`Starting ${mode} operation on ${storeName}`);
-    let db;
-    try {
-        db = await initDB();
+// Get user from database
+async function getUser(username) {
+    if (!db) {
+        throw new Error('Database not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['users'], 'readonly');
+        const store = transaction.objectStore('users');
+        const request = store.get(username);
         
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(storeName, mode);
-            const store = transaction.objectStore(storeName);
+        request.onsuccess = () => {
+            console.log('User retrieved:', request.result);
+            resolve(request.result);
+        };
+        request.onerror = () => reject(request.error);
+    });
+}
 
-            transaction.onerror = (event) => {
-                console.error(`Transaction error on ${storeName}:`, event.target.error);
-                reject(new Error(`Failed to perform operation on ${storeName}`));
-            };
+// Hash password using SHA-256
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
-            transaction.oncomplete = () => {
-                console.log(`Transaction completed on ${storeName}`);
-            };
+// Verify password
+async function verifyPassword(password, hash) {
+    const hashedPassword = await hashPassword(password);
+    return hashedPassword === hash;
+}
 
-            const request = operation(store);
+// Generate session token
+async function generateSessionToken(username) {
+    const timestamp = new Date().getTime();
+    const randomString = Math.random().toString(36).substring(2);
+    const data = username + timestamp + randomString;
+    return await hashPassword(data);
+}
 
+// Verify session token
+async function verifySessionToken(token) {
+    return activeSessions.has(token);
+}
+
+// Invalidate session
+async function invalidateSession(token) {
+    return activeSessions.delete(token);
+}
+
+// Finance-related functions
+async function addFinanceEntry(entry) {
+    if (!db) {
+        await initDB();
+    }
+
+    return new Promise((resolve, reject) => {
+        try {
+            const transaction = db.transaction(['finances'], 'readwrite');
+            const store = transaction.objectStore('finances');
+            const request = store.add(entry);
+            
             request.onsuccess = () => {
-                console.log(`Operation successful on ${storeName}`);
-                resolve(request.result);
+                console.log('Finance entry added successfully:', entry.id);
+                resolve();
             };
-
-            request.onerror = (event) => {
-                console.error(`Operation error on ${storeName}:`, event.target.error);
+            
+            request.onerror = () => {
+                console.error('Failed to add finance entry:', request.error);
                 reject(request.error);
             };
-        });
-    } catch (error) {
-        console.error(`Database operation failed on ${storeName}:`, error);
-        throw error;
-    } finally {
-        if (db) {
-            db.close();
-            console.log('Database connection closed');
+            
+            transaction.oncomplete = () => {
+                console.log('Transaction completed');
+            };
+            
+            transaction.onerror = () => {
+                console.error('Transaction failed:', transaction.error);
+                reject(transaction.error);
+            };
+        } catch (error) {
+            console.error('Error in addFinanceEntry:', error);
+            reject(error);
         }
-    }
+    });
 }
 
-// Database operations
-const db = {
-    // User operations
-    async addUser(userData) {
-        console.log('Adding user:', userData.username);
-        if (!userData || !userData.username) {
-            throw new Error('Invalid user data');
-        }
-        return dbOperation(STORES.users, 'readwrite', (store) => store.add(userData));
-    },
-
-    async getUser(username) {
-        console.log('Getting user:', username);
-        if (!username) {
-            throw new Error('Username is required');
-        }
-        return dbOperation(STORES.users, 'readonly', (store) => store.get(username));
-    },
-
-    async updateUser(userData) {
-        console.log('Updating user:', userData.username);
-        if (!userData || !userData.username) {
-            throw new Error('Invalid user data');
-        }
-        return dbOperation(STORES.users, 'readwrite', (store) => store.put(userData));
-    },
-
-    // Inventory operations
-    async addInventoryItem(item) {
-        return dbOperation(STORES.inventory, 'readwrite', (store) => store.add(item));
-    },
-
-    async getInventoryItem(id) {
-        return dbOperation(STORES.inventory, 'readonly', (store) => store.get(id));
-    },
-
-    async getAllInventory() {
-        return dbOperation(STORES.inventory, 'readonly', (store) => store.getAll());
-    },
-
-    async updateInventoryItem(item) {
-        return dbOperation(STORES.inventory, 'readwrite', (store) => store.put(item));
-    },
-
-    async deleteInventoryItem(id) {
-        return dbOperation(STORES.inventory, 'readwrite', (store) => store.delete(id));
-    },
-
-    // Customer operations
-    async addCustomer(customer) {
-        return dbOperation(STORES.customers, 'readwrite', (store) => store.add(customer));
-    },
-
-    async getCustomer(id) {
-        return dbOperation(STORES.customers, 'readonly', (store) => store.get(id));
-    },
-
-    async getAllCustomers() {
-        return dbOperation(STORES.customers, 'readonly', (store) => store.getAll());
-    },
-
-    async updateCustomer(customer) {
-        return dbOperation(STORES.customers, 'readwrite', (store) => store.put(customer));
-    },
-
-    async deleteCustomer(id) {
-        return dbOperation(STORES.customers, 'readwrite', (store) => store.delete(id));
-    },
-
-    // Bill operations
-    async addBill(bill) {
-        return dbOperation(STORES.bills, 'readwrite', (store) => store.add(bill));
-    },
-
-    async getBill(id) {
-        return dbOperation(STORES.bills, 'readonly', (store) => store.get(id));
-    },
-
-    async getAllBills() {
-        return dbOperation(STORES.bills, 'readonly', (store) => store.getAll());
-    },
-
-    async updateBill(bill) {
-        return dbOperation(STORES.bills, 'readwrite', (store) => store.put(bill));
-    },
-
-    async deleteBill(id) {
-        return dbOperation(STORES.bills, 'readwrite', (store) => store.delete(id));
-    },
-
-    // Finance operations
-    async addFinanceEntry(entry) {
-        return dbOperation(STORES.finances, 'readwrite', (store) => store.add(entry));
-    },
-
-    async getFinanceEntry(id) {
-        return dbOperation(STORES.finances, 'readonly', (store) => store.get(id));
-    },
-
-    async getAllFinances() {
-        return dbOperation(STORES.finances, 'readonly', (store) => store.getAll());
-    },
-
-    async updateFinanceEntry(entry) {
-        return dbOperation(STORES.finances, 'readwrite', (store) => store.put(entry));
-    },
-
-    async deleteFinanceEntry(id) {
-        return dbOperation(STORES.finances, 'readwrite', (store) => store.delete(id));
-    },
-
-    // Settings operations
-    async saveSettings(settings) {
-        return dbOperation(STORES.settings, 'readwrite', (store) => store.put({
-            id: 'business-settings',
-            ...settings
-        }));
-    },
-
-    async getSettings() {
-        return dbOperation(STORES.settings, 'readonly', (store) => store.get('business-settings'));
+async function updateFinanceEntry(entry) {
+    if (!db) {
+        await initDB();
     }
+
+    return new Promise((resolve, reject) => {
+        try {
+            const transaction = db.transaction(['finances'], 'readwrite');
+            const store = transaction.objectStore('finances');
+            const request = store.put(entry);
+            
+            request.onsuccess = () => {
+                console.log('Finance entry updated successfully:', entry.id);
+                resolve();
+            };
+            
+            request.onerror = () => {
+                console.error('Failed to update finance entry:', request.error);
+                reject(request.error);
+            };
+        } catch (error) {
+            console.error('Error in updateFinanceEntry:', error);
+            reject(error);
+        }
+    });
+}
+
+async function deleteFinanceEntry(id) {
+    if (!db) {
+        await initDB();
+    }
+
+    return new Promise((resolve, reject) => {
+        try {
+            const transaction = db.transaction(['finances'], 'readwrite');
+            const store = transaction.objectStore('finances');
+            const request = store.delete(id);
+            
+            request.onsuccess = () => {
+                console.log('Finance entry deleted successfully:', id);
+                resolve();
+            };
+            
+            request.onerror = () => {
+                console.error('Failed to delete finance entry:', request.error);
+                reject(request.error);
+            };
+        } catch (error) {
+            console.error('Error in deleteFinanceEntry:', error);
+            reject(error);
+        }
+    });
+}
+
+async function getAllFinanceEntries() {
+    if (!db) {
+        await initDB();
+    }
+
+    return new Promise((resolve, reject) => {
+        try {
+            const transaction = db.transaction(['finances'], 'readonly');
+            const store = transaction.objectStore('finances');
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                console.log('Retrieved all finance entries:', request.result?.length || 0, 'entries');
+                resolve(request.result || []);
+            };
+            
+            request.onerror = () => {
+                console.error('Failed to get finance entries:', request.error);
+                reject(request.error);
+            };
+        } catch (error) {
+            console.error('Error in getAllFinanceEntries:', error);
+            reject(error);
+        }
+    });
+}
+
+// Create the database interface object
+const dbInterface = {
+    init: initDB,
+    addUser,
+    getUser,
+    hashPassword,
+    verifyPassword,
+    generateSessionToken,
+    verifySessionToken,
+    invalidateSession,
+    // Add finance functions
+    addFinanceEntry,
+    updateFinanceEntry,
+    deleteFinanceEntry,
+    getAllFinanceEntries,
+    // Add data functions
+    getData,
+    saveData
 };
 
-// Test database connection
-async function testDB() {
-    try {
-        console.log('Testing database connection...');
-        await initDB();
-        console.log('Database connection test successful');
-        return true;
-    } catch (error) {
-        console.error('Database connection test failed:', error);
-        return false;
-    }
-}
-
-// Export the database interface and test function
-window.db = db;
-window.testDB = testDB;
+// Export the interface
+window.db = dbInterface;
 
 // Initialize database when the script loads
-testDB().catch(console.error); 
+initDB().catch(error => {
+    console.error('Failed to initialize database:', error);
+    // Fallback to localStorage if IndexedDB fails
+    console.log('Falling back to localStorage...');
+});

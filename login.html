@@ -18,6 +18,8 @@
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
         }
         
         .login-container {
@@ -27,6 +29,7 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 400px;
+            position: relative;
         }
         
         .login-logo {
@@ -34,17 +37,21 @@
             margin-bottom: 2rem;
         }
         
-        .login-logo h1 {
-            color: #2c3e50;
-            font-size: 2rem;
-            font-weight: 600;
-        }
-        
-        .form-control {
-            border-radius: 8px;
+        .login-error {
+            display: none;
+            margin-bottom: 1rem;
             padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #dc2626;
         }
-        
+
+        .register-link {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
         .btn-primary {
             background-color: #3498db;
             border: none;
@@ -57,56 +64,153 @@
         .btn-primary:hover {
             background-color: #2980b9;
         }
-        
-        .register-link {
-            text-align: center;
+
+        .btn-primary:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e1e1e1;
+        }
+
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .loading-text {
             margin-top: 1rem;
-        }
-        
-        .register-link a {
-            color: #3498db;
-            text-decoration: none;
-        }
-        
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-        
-        .alert {
-            display: none;
-            margin-bottom: 1rem;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="text-center">
+                <div class="spinner-border text-primary loading-spinner" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="loading-text">Initializing...</div>
+            </div>
+        </div>
+
         <div class="login-logo">
-            <h1>VaultBooks</h1>
-            <p class="text-muted">Sign in to your account</p>
+            <h2>VaultBooks</h2>
+            <p class="text-muted">Welcome Back</p>
         </div>
         
-        <div class="alert alert-danger" id="loginError" role="alert"></div>
+        <div id="loginError" class="login-error"></div>
         
-        <form id="loginForm" onsubmit="login(event)">
+        <form id="loginForm">
             <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
+                <label class="form-label">Username</label>
                 <input type="text" class="form-control" id="username" required>
             </div>
+            
             <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
+                <label class="form-label">Password</label>
                 <input type="password" class="form-control" id="password" required>
             </div>
-            <button type="submit" class="btn btn-primary">Sign In</button>
+            
+            <button type="submit" class="btn btn-primary">Login</button>
         </form>
         
         <div class="register-link">
-            <p>Don't have an account? <a href="register.html">Register here</a></p>
+            Don't have an account? <a href="register.html">Register here</a>
         </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/db.js"></script>
-    <script src="/js/auth.js"></script>
+    
+    <!-- Core Dependencies -->
+    <script src="js/config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script>
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loginForm = document.getElementById('loginForm');
+            
+            try {
+                console.log('Starting initialization...');
+                // Initialize database first
+                await window.db.init();
+                console.log('Database initialized successfully');
+                
+                // Check if already logged in
+                const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+                const username = sessionStorage.getItem('username');
+                
+                if (isLoggedIn === 'true' && username) {
+                    console.log('User already logged in, redirecting to dashboard...');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                loadingOverlay.style.display = 'none';
+
+                // Add form submit handler
+                loginForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const submitButton = loginForm.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    
+                    try {
+                        await window.auth.login(event);
+                    } catch (error) {
+                        console.error('Login failed:', error);
+                        const errorElement = document.getElementById('loginError');
+                        if (errorElement) {
+                            errorElement.textContent = error.message || 'Login failed. Please try again.';
+                            errorElement.style.display = 'block';
+                        }
+                    } finally {
+                        submitButton.disabled = false;
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                const errorElement = document.getElementById('loginError');
+                if (errorElement) {
+                    errorElement.textContent = 'Failed to initialize application. Please try again.';
+                    errorElement.style.display = 'block';
+                }
+                loadingOverlay.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

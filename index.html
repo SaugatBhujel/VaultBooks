@@ -72,23 +72,11 @@
             position: relative;
         }
 
-        .table {
-            background-color: white;
-            border-radius: 8px;
-        }
-
-        .btn-primary {
-            background-color: var(--primary-color);
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background-color: #357abd;
-        }
-
         .stats-card {
             background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
             color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
         }
 
         .stats-card i {
@@ -96,196 +84,165 @@
             opacity: 0.8;
         }
 
-        .modal-content {
-            border-radius: 12px;
-            border: none;
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
         }
 
-        .form-control {
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .loading-text {
+            margin-top: 1rem;
+            color: #666;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 1rem;
+        }
+
+        .user-info h6 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .user-info p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        .btn-logout {
+            color: #e74c3c;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
             border-radius: 8px;
-            border: 1px solid #ddd;
-            padding: 0.8rem;
+            transition: all 0.3s ease;
         }
 
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+        .btn-logout:hover {
+            background-color: #fee2e2;
         }
     </style>
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/loyalty.css">
 </head>
 <body>
-    <!-- Auth Check -->
-    <script>
-        if (!localStorage.getItem('isLoggedIn')) {
-            window.location.href = 'login.html';
-        }
-    </script>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="text-center">
+            <div class="spinner-border text-primary loading-spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="loading-text">Initializing...</div>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <div class="sidebar">
-        <h4 class="mb-4">VaultBooks</h4>
-        <nav class="nav flex-column">
-            <a class="nav-link active" href="#" onclick="showSection('dashboard')">
-                <i class="fas fa-home"></i> Dashboard
-            </a>
-            <a class="nav-link" href="#" onclick="showSection('finance')">
-                <i class="fas fa-chart-line"></i> Finance
-            </a>
-            <a class="nav-link" href="#" onclick="showSection('inventory')">
-                <i class="fas fa-box"></i> Inventory
-            </a>
-            <a class="nav-link" href="#" onclick="showSection('customers')">
-                <i class="fas fa-users"></i> Customers
-            </a>
-            <a class="nav-link" href="#" onclick="showSection('billing')">
-                <i class="fas fa-file-invoice"></i> Billing
-            </a>
-            <a class="nav-link" href="#" onclick="showSection('reports')">
-                <i class="fas fa-chart-bar"></i> Reports
-            </a>
-        </nav>
-        
-        <div class="mt-auto" style="position: absolute; bottom: 20px; width: calc(100% - 2rem);">
-            <hr>
-            <div class="dropdown">
-                <button class="btn btn-light dropdown-toggle w-100" type="button" id="userMenu" data-bs-toggle="dropdown">
-                    <i class="fas fa-user"></i> <span id="userFullName">User</span>
-                </button>
-                <ul class="dropdown-menu w-100">
-                    <li><a class="dropdown-item" href="#" onclick="showProfile()">Profile</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="showSettings()">Business Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
-                </ul>
+        <div class="user-profile">
+            <img src="https://ui-avatars.com/api/?background=4a90e2&color=fff" alt="User Avatar">
+            <div class="user-info">
+                <h6 id="userFullName">Loading...</h6>
+                <p id="userEmail">Loading...</p>
             </div>
         </div>
+        
+        <nav class="nav flex-column">
+            <a class="nav-link active" href="#dashboard" onclick="showSection('dashboard')">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </a>
+            <a class="nav-link" href="#finance" onclick="showSection('finance')">
+                <i class="fas fa-wallet"></i> Finance
+            </a>
+            <a class="nav-link" href="#inventory" onclick="showSection('inventory')">
+                <i class="fas fa-boxes"></i> Inventory
+            </a>
+            <a class="nav-link" href="#customers" onclick="showSection('customers')">
+                <i class="fas fa-users"></i> Customers
+            </a>
+            <a class="nav-link" href="#billing" onclick="showSection('billing')">
+                <i class="fas fa-file-invoice"></i> Billing
+            </a>
+            <a class="nav-link btn-logout" onclick="window.auth.logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </nav>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
         <!-- Dashboard Section -->
         <div id="dashboard" class="section">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Dashboard</h2>
-                <div class="btn-group">
-                    <button class="btn btn-outline-primary" onclick="handleChartPeriodChange('week')">Week</button>
-                    <button class="btn btn-outline-primary" onclick="handleChartPeriodChange('month')">Month</button>
-                    <button class="btn btn-outline-primary" onclick="handleChartPeriodChange('year')">Year</button>
-                </div>
-            </div>
-
-            <!-- Stats Cards -->
             <div class="row mb-4">
+                <!-- Stats Cards -->
                 <div class="col-md-3">
-                    <div class="card stats-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-subtitle mb-2">Revenue</h6>
-                                    <h3 class="card-title mb-0" id="totalRevenue">$0</h3>
-                                    <small class="text-white-50" id="revenueGrowth">+0% from last period</small>
-                                </div>
-                                <i class="fas fa-dollar-sign"></i>
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">$12,345</h3>
+                                <p class="text-white-50 mb-0">Total Revenue</p>
                             </div>
+                            <i class="fas fa-dollar-sign"></i>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card stats-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-subtitle mb-2">Orders</h6>
-                                    <h3 class="card-title mb-0" id="totalOrders">0</h3>
-                                    <small class="text-white-50" id="ordersGrowth">+0% from last period</small>
-                                </div>
-                                <i class="fas fa-shopping-cart"></i>
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">150</h3>
+                                <p class="text-white-50 mb-0">Total Orders</p>
                             </div>
+                            <i class="fas fa-shopping-cart"></i>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card stats-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-subtitle mb-2">Customers</h6>
-                                    <h3 class="card-title mb-0" id="totalCustomers">0</h3>
-                                    <small class="text-white-50" id="customersGrowth">+0 this period</small>
-                                </div>
-                                <i class="fas fa-users"></i>
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">45</h3>
+                                <p class="text-white-50 mb-0">Total Products</p>
                             </div>
+                            <i class="fas fa-box"></i>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card stats-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-subtitle mb-2">Profit</h6>
-                                    <h3 class="card-title mb-0" id="totalProfit">$0</h3>
-                                    <small class="text-white-50" id="profitGrowth">+0% from last period</small>
-                                </div>
-                                <i class="fas fa-chart-line"></i>
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-0">28</h3>
+                                <p class="text-white-50 mb-0">Total Customers</p>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Additional Analytics -->
-            <div class="row mb-4">
-                <!-- Top Products -->
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Top Selling Products</h5>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Product</th>
-                                            <th>Units Sold</th>
-                                            <th>Revenue</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="topProductsTable">
-                                        <!-- Will be populated dynamically -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Recent Transactions -->
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Recent Transactions</h5>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Customer</th>
-                                            <th>Amount</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="recentTransactionsTable">
-                                        <!-- Will be populated dynamically -->
-                                    </tbody>
-                                </table>
-                            </div>
+                            <i class="fas fa-users"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Charts -->
-            <div class="row">
+            <div class="row mb-4">
                 <div class="col-md-8">
                     <div class="card">
                         <div class="card-body">
@@ -299,35 +256,47 @@
                 <div class="col-md-4">
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title">Customer Distribution</h5>
+                            <h5 class="card-title">Top Products</h5>
                             <div class="chart-container">
-                                <canvas id="customersChart"></canvas>
+                                <canvas id="productsChart"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Sales Analytics -->
-            <div class="row mt-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Sales by Category</h5>
-                            <div class="chart-container">
-                                <canvas id="salesByCategoryChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Monthly Growth</h5>
-                            <div class="chart-container">
-                                <canvas id="growthChart"></canvas>
-                            </div>
-                        </div>
+            <!-- Recent Orders -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Orders</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#1234</td>
+                                    <td>John Doe</td>
+                                    <td>Product A</td>
+                                    <td>$99.99</td>
+                                    <td><span class="badge bg-success">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#1235</td>
+                                    <td>Jane Smith</td>
+                                    <td>Product B</td>
+                                    <td>$149.99</td>
+                                    <td><span class="badge bg-warning">Pending</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -335,315 +304,60 @@
 
         <!-- Finance Section -->
         <div id="finance" class="section" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Finance</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRevenueModal">
-                    <i class="fas fa-plus"></i> Add Entry
-                </button>
-            </div>
-
+            <h2 class="mb-4">Finance Management</h2>
+            
             <!-- Finance Stats -->
             <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Revenue</h6>
-                            <h3 class="card-title" id="financeRevenue">$0.00</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Expenses</h6>
-                            <h3 class="card-title" id="financeExpenses">$0.00</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Profit</h6>
-                            <h3 class="card-title" id="financeProfit">$0.00</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Profit Margin</h6>
-                            <h3 class="card-title" id="profitMargin">0%</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Finance Filters -->
-            <div class="row mb-4">
                 <div class="col-md-4">
-                    <label class="form-label">Month</label>
-                    <input type="month" class="form-control" id="financeMonth">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Revenue</h5>
+                            <h3 id="totalRevenue" class="text-success">$0.00</h3>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Type</label>
-                    <select class="form-select" id="transactionType">
-                        <option value="all">All Transactions</option>
-                        <option value="revenue">Revenue Only</option>
-                        <option value="expense">Expenses Only</option>
-                    </select>
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Expenses</h5>
+                            <h3 id="totalExpenses" class="text-danger">$0.00</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Net Income</h5>
+                            <h3 id="netIncome">$0.00</h3>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Finance Table -->
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Category</th>
-                            <th>Description</th>
-                            <th>Amount</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="financeTable">
-                        <!-- Finance entries will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Inventory Section -->
-        <div id="inventory" class="section" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Inventory</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                    <i class="fas fa-plus"></i> Add New Item
-                </button>
-            </div>
-            
-            <!-- Inventory Stats -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Total Items</h6>
-                            <h3 class="card-title mb-0" id="totalItems">0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Low Stock Items</h6>
-                            <h3 class="card-title mb-0" id="lowStockItems">0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Stock Value</h6>
-                            <h3 class="card-title mb-0" id="totalStockValue">$0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Categories</h6>
-                            <h3 class="card-title mb-0" id="totalCategories">0</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title mb-0">Inventory Items</h5>
-                        <div class="d-flex gap-2">
-                            <input type="text" class="form-control" placeholder="Search items..." id="inventorySearch">
-                            <select class="form-select" id="categoryFilter">
-                                <option value="">All Categories</option>
-                            </select>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="card-title">Financial Transactions</h5>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRevenueModal" onclick="window.finance.resetFinanceForm()">
+                            <i class="fas fa-plus"></i> Add Transaction
+                        </button>
                     </div>
+                    
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Item Name</th>
-                                    <th>Category</th>
-                                    <th>Quantity</th>
-                                    <th>Price</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inventoryTable" class="align-middle">
-                                <!-- Will be populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Customers Section -->
-        <div id="customers" class="section" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Customers</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
-                    <i class="fas fa-plus"></i> Add New Customer
-                </button>
-            </div>
-            
-            <!-- Customer Stats -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Total Customers</h6>
-                            <h3 class="card-title mb-0" id="customerCount">0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Active Customers</h6>
-                            <h3 class="card-title mb-0" id="activeCustomers">0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Total Orders</h6>
-                            <h3 class="card-title mb-0" id="customerOrders">0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Avg. Order Value</h6>
-                            <h3 class="card-title mb-0" id="avgOrderValue">$0</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title mb-0">Customer List</h5>
-                        <div class="d-flex gap-2">
-                            <input type="text" class="form-control" placeholder="Search customers..." id="customerSearch">
-                            <select class="form-select" id="customerStatusFilter">
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Orders</th>
-                                    <th>Total Spent</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customersTable">
-                                <!-- Will be populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Billing Section -->
-        <div id="billing" class="section" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Billing</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createBillModal">
-                    <i class="fas fa-plus"></i> Create New Bill
-                </button>
-            </div>
-            
-            <!-- Billing Stats -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Total Bills</h6>
-                            <h3 class="card-title mb-0" id="totalBills">0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Pending Bills</h6>
-                            <h3 class="card-title mb-0" id="pendingBills">0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Total Amount</h6>
-                            <h3 class="card-title mb-0" id="totalBillAmount">$0</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">Avg. Bill Amount</h6>
-                            <h3 class="card-title mb-0" id="avgBillAmount">$0</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title mb-0">Bills List</h5>
-                        <div class="d-flex gap-2">
-                            <input type="text" class="form-control" placeholder="Search bills..." id="billSearch">
-                            <select class="form-select" id="billStatusFilter">
-                                <option value="">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="paid">Paid</option>
-                                <option value="overdue">Overdue</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Bill #</th>
                                     <th>Date</th>
-                                    <th>Customer</th>
+                                    <th>Type</th>
+                                    <th>Category</th>
                                     <th>Amount</th>
-                                    <th>Status</th>
+                                    <th>Description</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="billingTable">
-                                <!-- Will be populated dynamically -->
+                            <tbody id="financeTableBody">
+                                <!-- Finance entries will be loaded here -->
                             </tbody>
                         </table>
                     </div>
@@ -651,413 +365,154 @@
             </div>
         </div>
 
-        <div id="reports" class="section" style="display: none;">
-            <h2>Reports</h2>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Business Reports</h5>
-                    <p>Generate detailed reports to analyze business performance and make informed decisions.</p>
-                    <button class="btn btn-primary">Generate Report</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modals -->
-    <div class="modal fade" id="transactionModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">New Transaction</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="transactionForm">
-                        <div class="mb-3">
-                            <label class="form-label">Customer</label>
-                            <select class="form-select" id="transactionCustomer" required>
-                                <option value="">Select Customer</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Amount</label>
-                            <input type="number" class="form-control" id="transactionAmount" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="transactionDescription" rows="3"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" form="transactionForm" class="btn btn-primary">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Item Modal -->
-    <div class="modal fade" id="addItemModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Item</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addItemForm">
-                        <div class="mb-3">
-                            <label class="form-label">Item Name</label>
-                            <input type="text" class="form-control" id="itemName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="itemQuantity" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Price</label>
-                            <input type="number" step="0.01" class="form-control" id="itemPrice" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" id="itemCategory">
-                                <option value="electronics">Electronics</option>
-                                <option value="clothing">Clothing</option>
-                                <option value="food">Food</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="addNewItem()">Add Item</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Item Modal -->
-    <div class="modal fade" id="editItemModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Item</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editItemForm">
-                        <input type="hidden" id="editItemId">
-                        <div class="mb-3">
-                            <label class="form-label">Item Name</label>
-                            <input type="text" class="form-control" id="editItemName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="editItemQuantity" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Price</label>
-                            <input type="number" step="0.01" class="form-control" id="editItemPrice" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" id="editItemCategory">
-                                <option value="electronics">Electronics</option>
-                                <option value="clothing">Clothing</option>
-                                <option value="food">Food</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="updateItem()">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Customer Modal -->
-    <div class="modal fade" id="addCustomerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Customer</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addCustomerForm">
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="customerName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="customerEmail" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone</label>
-                            <input type="tel" class="form-control" id="customerPhone" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <textarea class="form-control" id="customerAddress" rows="3"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="addNewCustomer()">Add Customer</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Create Bill Modal -->
-    <div class="modal fade" id="createBillModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Create New Bill</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="createBillForm">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Customer</label>
-                                <select class="form-select" id="billCustomer" required>
-                                    <option value="">Select Customer</option>
-                                    <!-- Will be populated dynamically -->
+        <!-- Add/Edit Finance Modal -->
+        <div class="modal fade" id="addRevenueModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Financial Transaction</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addFinanceForm" onsubmit="window.finance.addFinanceEntry(event)">
+                            <input type="hidden" id="financeId">
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-select" id="financeType" required>
+                                    <option value="">Select Type</option>
+                                    <option value="Revenue">Revenue</option>
+                                    <option value="Expense">Expense</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Bill Date</label>
-                                <input type="date" class="form-control" id="billDate" required>
+                            <div class="mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" id="financeCategory" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="Services">Services</option>
+                                    <option value="Rent">Rent</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Salaries">Salaries</option>
+                                    <option value="Supplies">Supplies</option>
+                                    <option value="Other">Other</option>
+                                </select>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <h6>Items</h6>
-                            <div id="billItems">
-                                <!-- Bill items will be added here -->
+                            <div class="mb-3">
+                                <label class="form-label">Date</label>
+                                <input type="date" class="form-control" id="financeDate" required>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addBillItem()">
-                                Add Item
-                            </button>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Notes</label>
-                                    <textarea class="form-control" id="billNotes" rows="3"></textarea>
-                                </div>
+                            <div class="mb-3">
+                                <label class="form-label">Amount</label>
+                                <input type="number" class="form-control" id="financeAmount" step="0.01" min="0" required>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Total Amount</label>
-                                    <input type="text" class="form-control" id="billTotal" readonly>
-                                </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="financeDescription" rows="3"></textarea>
                             </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveBill()">Create Bill</button>
+                            <div class="modal-footer px-0 pb-0">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Add/Edit Revenue Modal -->
-    <div class="modal fade" id="addRevenueModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Financial Entry</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addFinanceForm">
-                        <input type="hidden" id="financeId">
-                        <div class="mb-3">
-                            <label class="form-label">Type</label>
-                            <select class="form-select" id="financeType" required>
-                                <option value="">Select Type</option>
-                                <option value="revenue">Revenue</option>
-                                <option value="expense">Expense</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" id="financeCategory" required>
-                                <option value="">Select Category</option>
-                                <option value="sales">Sales</option>
-                                <option value="services">Services</option>
-                                <option value="rent">Rent</option>
-                                <option value="utilities">Utilities</option>
-                                <option value="salaries">Salaries</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Date</label>
-                            <input type="date" class="form-control" id="financeDate" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Amount</label>
-                            <input type="number" step="0.01" min="0" class="form-control" id="financeAmount" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="financeDescription" rows="3"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveFinanceEntry()">Save Entry</button>
-                </div>
-            </div>
+        <!-- Other sections will be added here -->
+        <div id="inventory" class="section" style="display: none;">
+            <h2>Inventory Section</h2>
+            <p>Coming soon...</p>
         </div>
-    </div>
 
-    <!-- Edit Customer Modal -->
-    <div class="modal fade" id="editCustomerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Customer</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editCustomerForm">
-                        <input type="hidden" id="editCustomerId">
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="editCustomerName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="editCustomerEmail" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone</label>
-                            <input type="tel" class="form-control" id="editCustomerPhone" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <textarea class="form-control" id="editCustomerAddress" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" id="editCustomerStatus">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="updateCustomer()">Save Changes</button>
-                </div>
-            </div>
+        <div id="customers" class="section" style="display: none;">
+            <h2>Customers Section</h2>
+            <p>Coming soon...</p>
         </div>
-    </div>
 
-    <!-- Settings Modal -->
-    <div class="modal fade" id="settingsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Business Settings</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="businessSettingsForm">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Business Name</label>
-                                <input type="text" class="form-control" id="businessName" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Tagline</label>
-                                <input type="text" class="form-control" id="businessTagline">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <textarea class="form-control" id="businessAddress" rows="2"></textarea>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Phone</label>
-                                <input type="tel" class="form-control" id="businessPhone">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" id="businessEmail">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Website</label>
-                                <input type="url" class="form-control" id="businessWebsite">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Tax Number</label>
-                                <input type="text" class="form-control" id="businessTaxNumber">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Logo URL</label>
-                            <input type="url" class="form-control" id="businessLogo">
-                        </div>
-                        <hr>
-                        <h6>Footer Information</h6>
-                        <div class="mb-3">
-                            <label class="form-label">Footer Text</label>
-                            <input type="text" class="form-control" id="footerText">
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Support Email</label>
-                                <input type="email" class="form-control" id="supportEmail">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Support Phone</label>
-                                <input type="tel" class="form-control" id="supportPhone">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveBusinessSettings()">Save Settings</button>
-                </div>
-            </div>
+        <div id="billing" class="section" style="display: none;">
+            <h2>Billing Section</h2>
+            <p>Coming soon...</p>
         </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Custom Scripts -->
-    <script src="/js/db.js"></script>
-    <script src="/js/config.js"></script>
-    <script src="/js/data.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/settings.js"></script>
-    <script src="/js/script.js"></script>
-    <script src="/js/charts.js"></script>
-    <script src="/js/billing.js"></script>
-    <script src="/js/inventory.js"></script>
-    <script src="/js/customers.js"></script>
-    <script src="/js/dashboard.js"></script>
-    <script src="/js/finance.js"></script>
+    
+    <!-- Utility Scripts -->
+    <script src="js/utils/currency.js"></script>
+    <script src="js/utils/loyalty-system.js"></script>
+    <script src="js/utils/notification-system.js"></script>
+    <script src="js/utils/qr-system.js"></script>
+    <script src="js/utils/ai-assistant.js"></script>
+    
+    <!-- Core Scripts -->
+    <script src="js/db.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/finance.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/customers.js"></script>
+    <script src="js/billing.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/script.js"></script>
+
+    <script>
+        // Show section function
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).style.display = 'block';
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + sectionId) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Initialize section-specific content
+            switch(sectionId) {
+                case 'dashboard':
+                    window.dashboard.initDashboard();
+                    break;
+                case 'finance':
+                    window.finance.initFinance();
+                    break;
+                case 'inventory':
+                    window.inventory.initInventory();
+                    break;
+                case 'customers':
+                    window.customers.initCustomers();
+                    break;
+                case 'billing':
+                    window.billing.initBilling();
+                    break;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            try {
+                // Initialize auth system
+                await window.auth.init();
+                
+                // Show dashboard
+                loadingOverlay.style.display = 'none';
+                showSection('dashboard');
+                
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                loadingOverlay.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

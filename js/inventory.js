@@ -1,388 +1,301 @@
-// Inventory functions
-function addNewItem() {
-    try {
-        const name = document.getElementById('itemName').value.trim();
-        const quantity = parseInt(document.getElementById('itemQuantity').value) || 0;
-        const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-        const category = document.getElementById('itemCategory').value;
-
-        // Validate inputs
-        if (!name) {
-            alert('Item name is required');
-            return;
+// Inventory module
+window.inventory = {
+    initInventory() {
+        try {
+            this.setupInventoryListeners();
+            this.loadInventory();
+            this.updateInventoryStats();
+        } catch (error) {
+            console.error('Failed to initialize inventory:', error);
         }
+    },
 
-        if (quantity < 0) {
-            alert('Quantity cannot be negative');
-            return;
-        }
+    generateItemId() {
+        return 'INV-' + Date.now();
+    },
 
-        if (price < 0) {
-            alert('Price cannot be negative');
-            return;
-        }
+    addNewItem() {
+        try {
+            const name = document.getElementById('itemName').value.trim();
+            const quantity = parseInt(document.getElementById('itemQuantity').value) || 0;
+            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+            const category = document.getElementById('itemCategory').value;
 
-        const itemData = {
-            id: generateItemId(),
-            name: name,
-            quantity: quantity,
-            price: price,
-            category: category,
-            status: 'in-stock',
-            dateAdded: new Date().toISOString()
-        };
+            // Validate inputs
+            if (!name) {
+                alert('Item name is required');
+                return;
+            }
 
-        const data = getData();
-        if (!Array.isArray(data.inventory)) {
-            data.inventory = [];
-        }
+            if (quantity < 0) {
+                alert('Quantity cannot be negative');
+                return;
+            }
 
-        data.inventory.push(itemData);
-        saveData(data);
-        
-        console.log('Item added successfully:', itemData);
-        loadInventory();
-        updateInventoryStats();
+            if (price < 0) {
+                alert('Price cannot be negative');
+                return;
+            }
 
-        // Clear form and close modal
-        document.getElementById('addItemForm').reset();
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addItemModal'));
-        modal.hide();
+            const itemData = {
+                id: this.generateItemId(),
+                name: name,
+                quantity: quantity,
+                price: price,
+                category: category,
+                status: 'in-stock',
+                dateAdded: new Date().toISOString()
+            };
 
-        // Show success message
-        alert('Item added successfully!');
-    } catch (error) {
-        console.error('Error adding item:', error);
-        alert('Failed to add item. Please try again.');
-    }
-}
+            const data = getData();
+            if (!Array.isArray(data.inventory)) {
+                data.inventory = [];
+            }
 
-function generateItemId() {
-    return 'ITEM-' + Date.now();
-}
-
-function loadInventory() {
-    try {
-        console.log('Starting loadInventory function');
-        
-        const inventoryTable = document.getElementById('inventoryTable');
-        if (!inventoryTable) {
-            throw new Error('Inventory table element not found');
-        }
-
-        const data = getData();
-        console.log('Loaded data:', data);
-
-        // Ensure data and inventory array exist and are valid
-        if (!data || !Array.isArray(data.inventory)) {
-            data.inventory = [];
+            data.inventory.push(itemData);
             saveData(data);
+            
+            console.log('Item added successfully:', itemData);
+            this.loadInventory();
+            this.updateInventoryStats();
+
+            // Clear form and close modal
+            document.getElementById('addItemForm').reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addItemModal'));
+            modal.hide();
+        } catch (error) {
+            console.error('Failed to add new item:', error);
+            alert('Failed to add item. Please try again.');
         }
+    },
 
-        // Sanitize inventory data
-        let inventory = data.inventory.map(item => ({
-            id: item.id || `ITEM-${Date.now()}`,
-            name: item.name || 'Unnamed Item',
-            quantity: parseInt(item.quantity) || 0,
-            price: parseFloat(item.price) || 0,
-            category: item.category || 'Other',
-            status: item.status || 'in-stock',
-            dateAdded: item.dateAdded || new Date().toISOString()
-        }));
-
-        // Apply filters
-        const searchInput = document.getElementById('inventorySearch');
-        const categorySelect = document.getElementById('categoryFilter');
-        
-        if (searchInput && searchInput.value.trim()) {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            inventory = inventory.filter(item => 
-                item.name.toLowerCase().includes(searchTerm) ||
-                item.category.toLowerCase().includes(searchTerm)
-            );
-        }
-
-        if (categorySelect && categorySelect.value) {
-            inventory = inventory.filter(item => item.category === categorySelect.value);
-        }
-
-        // Create table content
-        let tableContent;
-        if (inventory.length === 0) {
-            tableContent = `
-                <tr>
-                    <td colspan="6" class="text-center">
-                        ${searchInput?.value ? 'No items found matching your search' : 'No items in inventory'}
-                    </td>
-                </tr>
-            `;
-        } else {
-            tableContent = inventory.map(item => `
-                <tr>
-                    <td><strong>${item.name}</strong></td>
+    loadInventory() {
+        try {
+            const data = getData();
+            const inventory = data.inventory || [];
+            
+            // Sort by date added descending
+            inventory.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+            
+            const tableBody = document.getElementById('inventoryTableBody');
+            tableBody.innerHTML = '';
+            
+            inventory.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.name}</td>
                     <td>${item.category}</td>
                     <td>${item.quantity}</td>
-                    <td>$${(parseFloat(item.price) || 0).toFixed(2)}</td>
+                    <td>${formatCurrency(item.price)}</td>
+                    <td>${formatCurrency(item.quantity * item.price)}</td>
                     <td>
-                        <span class="badge bg-${getStockStatusColor(item.quantity)}">
-                            ${getStockStatus(item.quantity)}
+                        <span class="badge bg-${this.getStockStatusColor(item.quantity)}">
+                            ${this.getStockStatus(item.quantity)}
                         </span>
                     </td>
                     <td>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-primary" onclick="editItem('${item.id}')">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-success" onclick="adjustStock('${item.id}')">
-                                <i class="fas fa-boxes"></i> Stock
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="window.inventory.editItem('${item.id}')">Edit</button>
+                        <button class="btn btn-sm btn-warning" onclick="window.inventory.adjustStock('${item.id}')">Stock</button>
+                        <button class="btn btn-sm btn-danger" onclick="window.inventory.deleteItem('${item.id}')">Delete</button>
                     </td>
-                </tr>
-            `).join('');
-        }
+                `;
+                tableBody.appendChild(row);
+            });
 
-        // Update table
-        inventoryTable.innerHTML = tableContent;
-
-        // Update stats and filters
-        updateInventoryStats();
-        updateCategoryFilter(inventory);
-        
-        console.log(`Loaded ${inventory.length} items successfully`);
-    } catch (error) {
-        console.error('Detailed error in loadInventory:', error);
-        const inventoryTable = document.getElementById('inventoryTable');
-        if (inventoryTable) {
-            inventoryTable.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-danger">
-                        Error: ${error.message}. Please try refreshing the page.
-                    </td>
-                </tr>
-            `;
-        }
-    }
-}
-
-function editItem(itemId) {
-    const data = getData();
-    const item = data.inventory.find(i => i.id === itemId);
-    if (item) {
-        document.getElementById('editItemId').value = item.id;
-        document.getElementById('editItemName').value = item.name;
-        document.getElementById('editItemQuantity').value = item.quantity;
-        document.getElementById('editItemPrice').value = item.price;
-        document.getElementById('editItemCategory').value = item.category;
-        
-        const modal = new bootstrap.Modal(document.getElementById('editItemModal'));
-        modal.show();
-    }
-}
-
-function updateItem() {
-    try {
-        const itemId = document.getElementById('editItemId').value;
-        const data = getData();
-        const itemIndex = data.inventory.findIndex(i => i.id === itemId);
-        
-        if (itemIndex !== -1) {
-            data.inventory[itemIndex] = {
-                id: itemId,
-                name: document.getElementById('editItemName').value,
-                quantity: parseInt(document.getElementById('editItemQuantity').value),
-                price: parseFloat(document.getElementById('editItemPrice').value),
-                category: document.getElementById('editItemCategory').value,
-                status: getStockStatus(parseInt(document.getElementById('editItemQuantity').value))
-            };
-            saveData(data);
-            loadInventory();
-            
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editItemModal'));
-            modal.hide();
-        }
-    } catch (error) {
-        console.error('Error updating item:', error);
-        alert('Failed to update item. Please try again.');
-    }
-}
-
-function deleteItem(itemId) {
-    if (confirm('Are you sure you want to delete this item?')) {
-        try {
-            const data = getData();
-            data.inventory = data.inventory.filter(i => i.id !== itemId);
-            saveData(data);
-            loadInventory();
+            // Update category filter
+            this.updateCategoryFilter(inventory);
         } catch (error) {
-            console.error('Error deleting item:', error);
-            alert('Failed to delete item. Please try again.');
+            console.error('Failed to load inventory:', error);
         }
-    }
-}
+    },
 
-function adjustStock(itemId) {
-    const quantity = prompt('Enter quantity to add (use negative number to reduce stock):');
-    if (quantity !== null) {
+    editItem(itemId) {
         try {
             const data = getData();
             const item = data.inventory.find(i => i.id === itemId);
+            
             if (item) {
-                const newQuantity = item.quantity + parseInt(quantity);
-                if (newQuantity < 0) {
-                    alert('Stock cannot be negative');
-                    return;
-                }
-                item.quantity = newQuantity;
-                saveData(data);
-                loadInventory();
+                // Populate form
+                document.getElementById('editItemId').value = item.id;
+                document.getElementById('editItemName').value = item.name;
+                document.getElementById('editItemQuantity').value = item.quantity;
+                document.getElementById('editItemPrice').value = item.price;
+                document.getElementById('editItemCategory').value = item.category;
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editItemModal'));
+                modal.show();
             }
         } catch (error) {
-            console.error('Error adjusting stock:', error);
-            alert('Failed to adjust stock. Please try again.');
+            console.error('Failed to edit item:', error);
+        }
+    },
+
+    updateItem() {
+        try {
+            const itemId = document.getElementById('editItemId').value;
+            const name = document.getElementById('editItemName').value.trim();
+            const quantity = parseInt(document.getElementById('editItemQuantity').value) || 0;
+            const price = parseFloat(document.getElementById('editItemPrice').value) || 0;
+            const category = document.getElementById('editItemCategory').value;
+
+            if (!name || quantity < 0 || price < 0) {
+                alert('Please enter valid values');
+                return;
+            }
+
+            const data = getData();
+            const index = data.inventory.findIndex(i => i.id === itemId);
+            
+            if (index !== -1) {
+                data.inventory[index] = {
+                    ...data.inventory[index],
+                    name,
+                    quantity,
+                    price,
+                    category
+                };
+                
+                saveData(data);
+                this.loadInventory();
+                this.updateInventoryStats();
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editItemModal'));
+                modal.hide();
+            }
+        } catch (error) {
+            console.error('Failed to update item:', error);
+        }
+    },
+
+    deleteItem(itemId) {
+        try {
+            if (confirm('Are you sure you want to delete this item?')) {
+                const data = getData();
+                data.inventory = data.inventory.filter(i => i.id !== itemId);
+                saveData(data);
+                
+                this.loadInventory();
+                this.updateInventoryStats();
+            }
+        } catch (error) {
+            console.error('Failed to delete item:', error);
+        }
+    },
+
+    adjustStock(itemId) {
+        try {
+            const data = getData();
+            const item = data.inventory.find(i => i.id === itemId);
+            
+            if (item) {
+                const adjustment = parseInt(prompt(`Current stock: ${item.quantity}\nEnter adjustment amount (+/-):`, '0'));
+                
+                if (!isNaN(adjustment)) {
+                    const newQuantity = item.quantity + adjustment;
+                    
+                    if (newQuantity >= 0) {
+                        item.quantity = newQuantity;
+                        saveData(data);
+                        this.loadInventory();
+                        this.updateInventoryStats();
+                    } else {
+                        alert('Stock cannot be negative');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to adjust stock:', error);
+        }
+    },
+
+    updateInventoryStats() {
+        try {
+            const data = getData();
+            const inventory = data.inventory || [];
+            
+            const totalItems = inventory.length;
+            const totalValue = inventory.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+            const lowStock = inventory.filter(item => item.quantity <= 10).length;
+            
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+            document.getElementById('lowStock').textContent = lowStock;
+        } catch (error) {
+            console.error('Failed to update inventory stats:', error);
+        }
+    },
+
+    getStockStatus(quantity) {
+        if (quantity <= 0) return 'Out of Stock';
+        if (quantity <= 10) return 'Low Stock';
+        return 'In Stock';
+    },
+
+    getStockStatusColor(quantity) {
+        if (quantity <= 0) return 'danger';
+        if (quantity <= 10) return 'warning';
+        return 'success';
+    },
+
+    updateCategoryFilter(inventory) {
+        try {
+            const categories = new Set(inventory.map(item => item.category));
+            const select = document.getElementById('categoryFilter');
+            
+            select.innerHTML = '<option value="">All Categories</option>';
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Failed to update category filter:', error);
+        }
+    },
+
+    setupInventoryListeners() {
+        try {
+            // Add item form submit
+            document.getElementById('addItemForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.addNewItem();
+            });
+
+            // Edit item form submit
+            document.getElementById('editItemForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.updateItem();
+            });
+
+            // Category filter change
+            document.getElementById('categoryFilter').addEventListener('change', () => {
+                this.loadInventory();
+            });
+        } catch (error) {
+            console.error('Failed to setup inventory listeners:', error);
+        }
+    },
+
+    debugInventory() {
+        try {
+            const data = getData();
+            console.log('Current inventory data:', data.inventory);
+            return data.inventory;
+        } catch (error) {
+            console.error('Failed to debug inventory:', error);
+            return null;
         }
     }
-}
-
-function updateInventoryStats() {
-    const data = getData();
-    if (!data.inventory) return;
-
-    const totalItems = data.inventory.length;
-    const lowStockItems = data.inventory.filter(item => item.quantity <= 10).length;
-    const totalValue = data.inventory.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    const categories = new Set(data.inventory.map(item => item.category)).size;
-
-    document.getElementById('totalItems').textContent = totalItems;
-    document.getElementById('lowStockItems').textContent = lowStockItems;
-    document.getElementById('totalStockValue').textContent = `$${totalValue.toFixed(2)}`;
-    document.getElementById('totalCategories').textContent = categories;
-}
-
-function getStockStatus(quantity) {
-    if (quantity <= 0) return 'Out of Stock';
-    if (quantity <= 10) return 'Low Stock';
-    return 'In Stock';
-}
-
-function getStockStatusColor(quantity) {
-    if (quantity <= 0) return 'danger';
-    if (quantity <= 10) return 'warning';
-    return 'success';
-}
-
-function updateCategoryFilter(inventory) {
-    const categoryFilter = document.getElementById('categoryFilter');
-    if (categoryFilter) {
-        const categories = [...new Set(inventory.map(item => item.category))];
-        const options = categories.map(category => 
-            `<option value="${category}">${category}</option>`
-        ).join('');
-        categoryFilter.innerHTML = '<option value="">All Categories</option>' + options;
-    }
-}
-
-// Event Listeners
-function setupInventoryListeners() {
-    const searchInput = document.getElementById('inventorySearch');
-    const categorySelect = document.getElementById('categoryFilter');
-
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            loadInventory();
-        });
-    }
-
-    if (categorySelect) {
-        categorySelect.addEventListener('change', () => {
-            loadInventory();
-        });
-    }
-}
+};
 
 // Initialize inventory when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    setupInventoryListeners();
-    loadInventory();
-    debugInventory();
+    try {
+        window.inventory.initInventory();
+    } catch (error) {
+        console.error('Error initializing inventory module:', error);
+    }
 });
-
-// Add this function to help debug
-function debugInventory() {
-    const data = getData();
-    console.log('Current Inventory:', data.inventory || []);
-}
-
-// Add this function to help with debugging
-function testAddSampleItem() {
-    try {
-        const sampleItem = {
-            id: 'ITEM-' + Date.now(),
-            name: 'Test Item',
-            quantity: 10,
-            price: 99.99,
-            category: 'electronics',
-            status: 'in-stock',
-            dateAdded: new Date().toISOString()
-        };
-
-        const data = getData();
-        if (!data.inventory) data.inventory = [];
-        data.inventory.push(sampleItem);
-        saveData(data);
-        loadInventory();
-        console.log('Sample item added successfully');
-        return true;
-    } catch (error) {
-        console.error('Error adding sample item:', error);
-        return false;
-    }
-}
-
-// Add this function to test with sample data
-function addSampleInventory() {
-    const sampleItems = [
-        {
-            id: 'ITEM-1',
-            name: 'Laptop',
-            quantity: 15,
-            price: 999.99,
-            category: 'electronics',
-            status: 'in-stock',
-            dateAdded: new Date().toISOString()
-        },
-        {
-            id: 'ITEM-2',
-            name: 'T-Shirt',
-            quantity: 50,
-            price: 19.99,
-            category: 'clothing',
-            status: 'in-stock',
-            dateAdded: new Date().toISOString()
-        },
-        {
-            id: 'ITEM-3',
-            name: 'Coffee Maker',
-            quantity: 8,
-            price: 79.99,
-            category: 'electronics',
-            status: 'low-stock',
-            dateAdded: new Date().toISOString()
-        }
-    ];
-
-    try {
-        const data = getData();
-        data.inventory = sampleItems;
-        saveData(data);
-        loadInventory();
-        console.log('Sample inventory added successfully');
-        return true;
-    } catch (error) {
-        console.error('Error adding sample inventory:', error);
-        return false;
-    }
-} 
